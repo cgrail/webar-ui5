@@ -10,6 +10,7 @@ sap.ui.define([
 		},
 
 		shoot: function() {
+			MessageToast.show("Please implement me...");
 		},
 
 		getScene: function() {
