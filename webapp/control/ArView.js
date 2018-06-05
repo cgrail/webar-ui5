@@ -1,3 +1,4 @@
+/*global THREE TWEEN*/
 sap.ui.core.Control.extend("webar-test.control.ArView", {
 	metadata: {
 		properties: {
@@ -5,12 +6,35 @@ sap.ui.core.Control.extend("webar-test.control.ArView", {
 		}
 	},
 
+	getScene: function() {
+		return this.getThreeContext().scene;
+	},
+
+	getPosition: function() {
+		var vrFrameData = this.getThreeContext().vrFrameData;
+		return new THREE.Vector3(
+			vrFrameData.pose.position[0],
+			vrFrameData.pose.position[1],
+			vrFrameData.pose.position[2]
+		);
+	},
+
+	getOrientation: function() {
+		var vrFrameData = this.getThreeContext().vrFrameData;
+		return new THREE.Quaternion(
+			vrFrameData.pose.orientation[0],
+			vrFrameData.pose.orientation[1],
+			vrFrameData.pose.orientation[2],
+			vrFrameData.pose.orientation[3]
+		);
+	},
+
 	onAfterRendering: function() {
-		
+
 		if (this.arViewInitialized) {
 			return;
 		}
-		this.arViewInitialized = true; 
+		this.arViewInitialized = true;
 
 		var vrDisplay;
 		var vrControls;
@@ -21,7 +45,7 @@ sap.ui.core.Control.extend("webar-test.control.ArView", {
 		var camera;
 		var scene;
 		var renderer;
-		
+
 		var viewId = this.getId();
 		var that = this;
 
@@ -34,6 +58,42 @@ sap.ui.core.Control.extend("webar-test.control.ArView", {
 				THREE.ARUtils.displayUnsupportedMessage();
 			}
 		});
+		
+		
+		/**
+		 * The render loop, called once per frame. Handles updating
+		 * our scene and rendering.
+		 */
+		function update() {
+			// Clears color from the frame before rendering the camera (arView) or scene.
+			renderer.clearColor();
+
+			// Render the device's camera stream on screen first of all.
+			// It allows to get the right pose synchronized with the right frame.
+			arView.render();
+
+			// Update our camera projection matrix in the event that
+			// the near or far planes have updated
+			camera.updateProjectionMatrix();
+
+			// From the WebVR API, populate `vrFrameData` with
+			// updated information for the frame
+			vrDisplay.getFrameData(vrFrameData);
+
+			// Update our perspective camera's positioning
+			vrControls.update();
+
+			// Render our three.js virtual scene
+			renderer.clearDepth();
+			renderer.render(scene, camera);
+
+			TWEEN.update();
+
+			// Kick off the requestAnimationFrame to call this function
+			// when a new VRDisplay frame is rendered
+			vrDisplay.requestAnimationFrame(update);
+
+		}
 
 		function init() {
 			// Setup the three.js rendering environment
@@ -82,46 +142,10 @@ sap.ui.core.Control.extend("webar-test.control.ArView", {
 			canvas.addEventListener(
 				'touchstart',
 				function() {
-					console.log("onclick");
-				}, false );
+				}, false);
 
 			// Kick off the render loop!
 			update();
-		}
-
-		/**
-		 * The render loop, called once per frame. Handles updating
-		 * our scene and rendering.
-		 */
-		function update() {
-			// Clears color from the frame before rendering the camera (arView) or scene.
-			renderer.clearColor();
-
-			// Render the device's camera stream on screen first of all.
-			// It allows to get the right pose synchronized with the right frame.
-			arView.render();
-
-			// Update our camera projection matrix in the event that
-			// the near or far planes have updated
-			camera.updateProjectionMatrix();
-
-			// From the WebVR API, populate `vrFrameData` with
-			// updated information for the frame
-			vrDisplay.getFrameData(vrFrameData);
-
-			// Update our perspective camera's positioning
-			vrControls.update();
-
-			// Render our three.js virtual scene
-			renderer.clearDepth();
-			renderer.render(scene, camera);
-
-			TWEEN.update();
-
-			// Kick off the requestAnimationFrame to call this function
-			// when a new VRDisplay frame is rendered
-			vrDisplay.requestAnimationFrame(update);
-
 		}
 
 	},
