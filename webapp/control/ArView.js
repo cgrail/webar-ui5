@@ -11,7 +11,7 @@ sap.ui.core.Control.extend("webar-test.control.ArView", {
 	},
 
 	getPosition: function() {
-		return this.getThreeContext().camera.position;
+		return this.getThreeContext().camera.getWorldPosition();
 	},
 
 	getOrientation: function() {
@@ -24,11 +24,14 @@ sap.ui.core.Control.extend("webar-test.control.ArView", {
 			return;
 		}
 		this.arViewInitialized = true;
- 
+
 		var that = this;
 		var container;
 		var renderer, camera, scene;
-		THREE.WebXRUtils.getDisplays().then(init);
+
+		function update() {
+			TWEEN.update();
+		}
 
 		function init(displays) {
 			container = document.createElement('div');
@@ -44,35 +47,17 @@ sap.ui.core.Control.extend("webar-test.control.ArView", {
 			renderer = new THREE.WebGLRenderer({
 				alpha: true
 			});
-			renderer.autoClear = false;
 			container.appendChild(renderer.domElement);
-			
+
 			var pointLight = new THREE.PointLight(0xffffff, 0.8);
 			camera.add(pointLight);
 
 			var ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.4);
 			scene.add(ambientLight);
 
-			window.addEventListener('resize', onWindowResize, false);
-			onWindowResize();
-			var options = {
-				// Flag to start AR if is the unique display available.
-				AR_AUTOSTART: true
-			}
-			renderer.xr = new THREE.WebXRManager(options, displays, renderer, camera, scene, update);
+			renderer.xr = new THREE.WebXRManager({}, displays, renderer, camera, scene, update);
 		}
-
-		function onWindowResize() {
-			setTimeout(() => {
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
-			}, 150);
-		}
-		// Called once per frame, before render, to give the app a chance to update this.scene
-		function update(frame) {
-			TWEEN.update();
-		}
-
+		THREE.WebXRUtils.getDisplays().then(init);
 	},
 
 	renderer: function(oRm, oControl) { // the part creating the HTML
@@ -80,7 +65,7 @@ sap.ui.core.Control.extend("webar-test.control.ArView", {
 		oRm.writeControlData(oControl);
 		oRm.addClass("ar-view");
 		oRm.writeClasses();
-		oRm.write('>');
+		oRm.write(">");
 		oRm.write("</div>");
 	}
 });
